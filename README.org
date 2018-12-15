@@ -1,0 +1,7 @@
+#+AUTHOR: Simon Stoltze
+#+EMAIL: sstoltze@gmail.com
+#+DATE: 2018-12-15
+#+OPTIONS: toc:nil title:nil author:nil email:nil date:nil creator:nil
+* text-search
+
+This is a small project to brush up on Haskell after not using it for some time. It allows you to search all files in a given folder, looking for specific words and showing the lines containing them.

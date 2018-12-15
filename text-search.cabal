@@ -1,0 +1,23 @@
+name:                text-search
+version:             0.1.0.0
+-- synopsis:
+-- description:
+homepage:            https://github.com/sstoltze/text-search#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Simon Stoltze
+maintainer:          sstoltze@gmail.com
+copyright:           2018 Simon Stoltze
+category:            Web
+build-type:          Simple
+cabal-version:       >=1.10
+extra-source-files:  README.org
+
+executable text-search
+  hs-source-dirs:      src
+  main-is:             Main.hs
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5,
+                       containers,
+                       directory,
+                       text
