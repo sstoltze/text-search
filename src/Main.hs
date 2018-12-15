@@ -12,7 +12,8 @@ type WordIndex  = Map.Map Wordname [IndexEntry]
 instance Show IndexEntry where
   show entry = let ln = show $ lineNumber $ position entry
                    cn = show $ characterNumber $ position entry
-               in "File: " ++ fileName entry ++ ", line " ++ ln ++ ", character " ++ cn ++ ". \"" ++ T.unpack (T.strip $ containingLine entry) ++ "\""
+                   -- Move the T.strip call out of this definition. Write custom function to show the IndexEntry list when searching
+               in "File: " ++ fileName entry ++ ", line " ++ ln ++ ", character " ++ cn ++ ". Containing line: \"" ++ T.unpack (T.strip $ containingLine entry) ++ "\""
 
 standardise :: Wordname -> Wordname
 standardise = T.toLower
@@ -29,22 +30,28 @@ main = do
 loopLookupWords :: WordIndex -> IO ()
 loopLookupWords index = do
   putStrLn "Enter words to search for (:q to quit):"
+  putStr "> "
   line <- getLine
   putStrLn ""
-  let w = T.words $ T.pack line
+  let ws = T.words $ T.pack line
       handleWord word =
         if word == ":q"
         then putStr ""
         else do
-          putStrLn $ "Word: " ++ T.unpack word
-          if Map.member word index
-            then mapM_ (putStrLn . show) $ index Map.! (standardise word)
+          putStrLn $ "Search for: " ++ T.unpack word
+          let w = standardise word
+          if Map.member w index
+            then mapM_ (putStrLn . show) $ index Map.! w
             else putStrLn "Not found."
           putStrLn ""
-  mapM_ handleWord $ w
-  if any (== ":q") w
+  mapM_ handleWord $ ws
+  if any (== ":q") ws
     then return ()
     else loopLookupWords index
+
+-- Finish writing this.
+indexEntriesToString :: [IndexEntry] -> String
+indexEntriesToString ixs = ""
 
 buildIndexFromFile :: FilePath -> IO WordIndex
 buildIndexFromFile file = do
