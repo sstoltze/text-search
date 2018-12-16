@@ -6,14 +6,8 @@ import qualified Data.Text as T
 
 type Wordname   = T.Text
 data Position   = Position { lineNumber :: Int, characterNumber :: Int } deriving Show
-data IndexEntry = IndexEntry { fileName :: FilePath, position :: Position, containingLine :: T.Text}
+data IndexEntry = IndexEntry { fileName :: FilePath, position :: Position, containingLine :: T.Text} deriving Show
 type WordIndex  = Map.Map Wordname [IndexEntry]
-
-instance Show IndexEntry where
-  show entry = let ln = show $ lineNumber $ position entry
-                   cn = show $ characterNumber $ position entry
-                   -- Move the T.strip call out of this definition. Write custom function to show the IndexEntry list when searching
-               in "File: " ++ fileName entry ++ ", line " ++ ln ++ ", character " ++ cn ++ ". Containing line: \"" ++ T.unpack (T.strip $ containingLine entry) ++ "\""
 
 standardise :: Wordname -> Wordname
 standardise = T.toLower
@@ -26,32 +20,47 @@ main = do
   loopLookupWords ix
 
 -- If more than one word, show only lines containing all of them
--- If word appears more than once in the same line, print the line only once and print how many times the word appears in that line (and positions?)
 loopLookupWords :: WordIndex -> IO ()
 loopLookupWords index = do
   putStrLn "Enter words to search for (:q to quit):"
   putStr "> "
   line <- getLine
-  putStrLn ""
   let ws = T.words $ T.pack line
-      handleWord word =
-        if word == ":q"
-        then putStr ""
-        else do
-          putStrLn $ "Search for: " ++ T.unpack word
-          let w = standardise word
-          if Map.member w index
-            then mapM_ (putStrLn . show) $ index Map.! w
-            else putStrLn "Not found."
-          putStrLn ""
-  mapM_ handleWord $ ws
+      -- handleWord word =
+      --   if word == ":q"
+      --   then putStr ""
+      --   else do
+      --     putStrLn $ "Search for: " ++ T.unpack word
+      --     let w = standardise word
+      --     if Map.member w index
+      --       then mapM_ (putStrLn . show) $ categoriseEntries $ index Map.! w
+      --       else putStrLn "Not found."
+      --     putStrLn ""
+--  mapM_ handleWord $ ws
   if any (== ":q") ws
     then return ()
-    else loopLookupWords index
+    else do
+    if all (\x -> Map.member x index) ws
+      then let cats = map (categoriseEntries . (index Map.!)) ws
+           in mapM_ (mapM_ (\c -> printCategory c >> putStrLn "")) cats
+      else putStrLn "Not found.\n"
+    loopLookupWords index
 
--- Finish writing this.
-indexEntriesToString :: [IndexEntry] -> String
-indexEntriesToString ixs = ""
+categoriseEntries :: [IndexEntry] -> [(FilePath, Int, T.Text, [Int])]
+categoriseEntries xs = categoriseEntries' xs [] [] where
+  categoriseEntries' [] ys _ = ys
+  categoriseEntries' (x:xs) ys alreadyChecked = let pair = (fileName x, lineNumber $ position x) in
+                                                  if elem pair alreadyChecked
+                                                  then categoriseEntries' xs (map (\(f,l,line,positions) -> (f,l,line,if (f,l) == pair
+                                                                                                                     then (characterNumber $ position x) : positions
+                                                                                                                     else positions))
+                                                                                    ys) alreadyChecked
+                                                  else categoriseEntries' xs ((fileName x, lineNumber $ position x, containingLine x, [characterNumber $ position x]):ys) (pair:alreadyChecked)
+
+printCategory :: (FilePath, Int, T.Text, [Int]) -> IO ()
+printCategory (filename, linenumber, line, positions) = putStrLn $ "File: " ++ filename ++ ", line " ++ (show linenumber) ++ ", positions " ++ (show positions) ++ ".\nContaining line: \"" ++ T.unpack (T.strip $ line) ++ "\""
+
+
 
 buildIndexFromFile :: FilePath -> IO WordIndex
 buildIndexFromFile file = do
