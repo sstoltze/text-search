@@ -5,3 +5,5 @@
 * text-search
 
 This is a small project to brush up on Haskell after not using it for some time. It allows you to search all files in a given folder, looking for specific words and showing the lines containing them.
+** Installation
+The project is built using [[https://docs.haskellstack.org/en/stable/README/][Stack]]. The actual code can be found in [[./src/Main.hs]].
