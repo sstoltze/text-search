@@ -4,8 +4,11 @@ import qualified System.Directory as Dir
 import qualified Data.Char as Char
 import qualified Data.Text as T
 
-data Position   = Position { lineNumber :: Int, characterNumber :: Int } deriving Show
-data IndexEntry = IndexEntry { fileName :: FilePath, position :: Position, containingLine :: T.Text} deriving Show
+data Position   = Position   { lineNumber      :: Int,
+                               characterNumber :: Int }   deriving Show
+data IndexEntry = IndexEntry { fileName        :: FilePath,
+                               position        :: Position,
+                               containingLine  :: T.Text} deriving Show
 type WordIndex  = Map.Map T.Text [IndexEntry]
 
 -- Standardise words to a common form
@@ -13,13 +16,13 @@ standardise :: T.Text -> T.Text
 standardise = T.toLower
 
 main :: IO ()
-main = do
-  -- Find all files in current directory and subdirectories
-  files <- Dir.getCurrentDirectory >>= findFilesRecursively
-  -- Replace each file with an index and combine them
-  index <- mapM buildIndexFromFile files >>= return . Map.unionsWith (++)
-  -- Allow user to search for words
-  loopLookupWords index
+main = Dir.getCurrentDirectory
+       -- Find all files in current directory and subdirectories
+       >>= findFilesRecursively
+       -- Replace each file with an index
+       >>= mapM buildIndexFromFile
+       -- Combine indices and allow user to search for words
+       >>= loopLookupWords . Map.unionsWith (++)
 
 -- Find files in directory, skipping anything starting with a '.'
 findFilesRecursively :: FilePath -> IO [FilePath]
