@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+import Data.Functor ((<&>))
 import qualified Data.Map as Map
 import qualified System.Directory as Dir
 import qualified Data.Char as Char
@@ -33,10 +34,8 @@ findFilesRecursively dir = do
   then return [dir]
   else if isDirectory
        then Dir.listDirectory dir
-                >>= (\l -> mapM findFilesRecursively $
-                          map (\f -> dir ++ "/" ++ f) $
-                              filter (\f -> not (f !! 0 == '.')) l)
-                >>= return . concat
+                >>= (mapM (findFilesRecursively . (\f -> dir ++ "/" ++ f)) . filter (\f -> head f /= '.'))
+                <&> concat
        else return []
 
 -- Ask user for words to search for
@@ -47,8 +46,8 @@ loopLookupWords index = do
   putStr   "> "
   line <- getLine
   let words   = T.words $ T.pack line
-      inIndex = flip Map.member $ index
-  if any (== ":q") words
+      inIndex = flip Map.member index
+  if ":q" `elem` words
   then return ()
   else do
     if all inIndex words
@@ -56,11 +55,11 @@ loopLookupWords index = do
              -- reduce combines two entries if they have the same file and line number
              reduce [] _ = []
              reduce ((a1,b1,c1,d1):xs) ys = [(a1,b1,c1,d1++d2) | (a2,b2,c2,d2) <- ys, (a2,b2) == (a1,b1)] ++ reduce xs ys
-             matchingLines = foldl reduce (cats !! 0) $ tail cats
+             matchingLines = foldl1 reduce cats
          in if null matchingLines
             then putStrLn "Could not find a line containg all the words.\n"
             else mapM_ (\c -> printCategory c >> putStrLn "") matchingLines
-    else putStrLn $ "Could not find words: " ++ (T.unpack $ T.unwords $ filter (not . inIndex) words) ++ "\n"
+    else putStrLn $ "Could not find words: " ++ T.unpack (T.unwords $ filter (not . inIndex) words) ++ "\n"
     loopLookupWords index
 
 -- Replace a list of IndexEntries with a list of (file, line number, line, list of character positions) tuples, by combining entries that appear in the same line
@@ -69,12 +68,12 @@ categoriseEntries xs = categoriseEntries' xs [] [] where
   categoriseEntries' []     ys _              = ys
   categoriseEntries' (x:xs) ys alreadyChecked =
       let pair = (fileName x, lineNumber $ position x)
-      in if elem pair alreadyChecked
+      in if pair `elem` alreadyChecked
          then categoriseEntries' xs (map (\(f,l,line,positions) -> (f,
                                                                    l,
                                                                    line,
                                                                    if (f,l) == pair
-                                                                   then (characterNumber $ position x) : positions
+                                                                   then characterNumber (position x) : positions
                                                                    else positions))
 
                                      ys) alreadyChecked
@@ -85,7 +84,7 @@ categoriseEntries xs = categoriseEntries' xs [] [] where
 
 -- Print a tuple in a readable fashion
 printCategory :: (FilePath, Int, T.Text, [Int]) -> IO ()
-printCategory (filename, linenumber, line, positions) = putStrLn $ "File: " ++ filename ++ ", line " ++ (show linenumber) ++ ", positions " ++ (show positions) ++ ".\nContaining line: \"" ++ T.unpack (T.strip $ line) ++ "\""
+printCategory (filename, linenumber, line, positions) = putStrLn $ "File: " ++ filename ++ ", line " ++ show linenumber ++ ", positions " ++ showf positions ++ ".\nContaining line: \"" ++ T.unpack (T.strip line) ++ "\""
 
 -- Build an index by adding lines word by word while keeping track of positions using folds
 buildIndexFromFile :: FilePath -> IO WordIndex
@@ -98,12 +97,12 @@ buildIndexFromFile file = do
           let entry = IndexEntry file (Position lineNumber wordNumber) line
           in Map.insertWith (++) (standardise word) [entry] ix
       addLineToIndex ix line file lineNumber =
-          let f (ix, len) w = (addWordToIndex ix w file lineNumber len line, 1+len+(T.length w))
+          let f (ix, len) w = (addWordToIndex ix w file lineNumber len line, 1 + len + T.length w)
           in fst $
              foldl f (ix, T.length $ T.takeWhile Char.isSpace line) $
              T.words $
              T.map (\c -> if Char.isPunctuation c
                          then ' '
                          else c) line
-      f (ix, lineNumber) line = (addLineToIndex ix line file lineNumber, 1+lineNumber)
+      f (ix, lineNumber) line = (addLineToIndex ix line file lineNumber, 1 + lineNumber)
   return $ fst $ foldl f (index, 0) ls
