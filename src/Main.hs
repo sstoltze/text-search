@@ -84,7 +84,7 @@ categoriseEntries xs = categoriseEntries' xs [] [] where
 
 -- Print a tuple in a readable fashion
 printCategory :: (FilePath, Int, T.Text, [Int]) -> IO ()
-printCategory (filename, linenumber, line, positions) = putStrLn $ "File: " ++ filename ++ ", line " ++ show linenumber ++ ", positions " ++ showf positions ++ ".\nContaining line: \"" ++ T.unpack (T.strip line) ++ "\""
+printCategory (filename, linenumber, line, positions) = putStrLn $ "File: " ++ filename ++ ", line " ++ show linenumber ++ ", positions " ++ show positions ++ ".\nContaining line: \"" ++ T.unpack (T.strip line) ++ "\""
 
 -- Build an index by adding lines word by word while keeping track of positions using folds
 buildIndexFromFile :: FilePath -> IO WordIndex
