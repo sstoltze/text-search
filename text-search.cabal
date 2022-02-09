@@ -5,9 +5,9 @@ version:             0.1.0.0
 homepage:            https://github.com/sstoltze/text-search#readme
 license:             BSD3
 license-file:        LICENSE
-author:              Simon Stoltze
+author:              Sarah Stoltze
 maintainer:          sstoltze@gmail.com
-copyright:           2018 Simon Stoltze
+copyright:           2018 Sarah Stoltze
 category:            Web
 build-type:          Simple
 cabal-version:       >=1.10
